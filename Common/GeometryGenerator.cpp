@@ -1,4 +1,4 @@
-//***************************************************************************************
+h i//***************************************************************************************
 // GeometryGenerator.cpp by Frank Luna (C) 2011 All Rights Reserved.
 //***************************************************************************************
 
@@ -654,4 +654,126 @@ GeometryGenerator::MeshData GeometryGenerator::CreateQuad(float x, float y, floa
 	meshData.Indices32[5] = 3;
 
     return meshData;
+}
+
+GeometryGenerator::MeshData GeometryGenerator::CreatePyramid(float width, float depth, float height)
+{
+	MeshData meshData;
+
+	const float w2 = 0.5f * width;
+	const float d2 = 0.5f * depth;
+	const float h = height;
+
+	// We will build a simple square pyramid:
+	//  - 4 base corners at y=0
+	//  - 1 apex at y=height
+	//
+	// Note: For correct lighting, each face should have its own vertices
+	// (so normals don't get averaged across sharp edges).
+	// We'll create:
+	//  - 4 side faces * 3 verts each = 12 verts
+	//  - base (2 tris) = 6 verts
+	meshData.Vertices.resize(18);
+	meshData.Indices32.resize(18);
+
+	using Vertex = GeometryGenerator::Vertex;
+
+	// Helper lambda to fill a vertex quickly.
+	auto V = [](float x, float y, float z, float nx, float ny, float nz, float u, float v)
+		{
+			Vertex vert;
+			vert.Position = XMFLOAT3(x, y, z);
+			vert.Normal = XMFLOAT3(nx, ny, nz);
+			vert.TangentU = XMFLOAT3(1.0f, 0.0f, 0.0f); // ok for now
+			vert.TexC = XMFLOAT2(u, v);
+			return vert;
+		};
+
+	// Base corners (for position reference)
+	XMFLOAT3 p0(-w2, 0.0f, -d2);
+	XMFLOAT3 p1(+w2, 0.0f, -d2);
+	XMFLOAT3 p2(+w2, 0.0f, +d2);
+	XMFLOAT3 p3(-w2, 0.0f, +d2);
+	XMFLOAT3 apex(0.0f, h, 0.0f);
+
+	// ---- Side faces (each face has its own normal) ----
+	// Face 0: p0, p1, apex
+	{
+		XMVECTOR a = XMLoadFloat3(&p0);
+		XMVECTOR b = XMLoadFloat3(&p1);
+		XMVECTOR c = XMLoadFloat3(&apex);
+		XMVECTOR n = XMVector3Normalize(XMVector3Cross(b - a, c - a));
+		XMFLOAT3 nf;
+		XMStoreFloat3(&nf, n);
+
+		meshData.Vertices[0] = V(p0.x, p0.y, p0.z, nf.x, nf.y, nf.z, 0.0f, 1.0f);
+		meshData.Vertices[1] = V(p1.x, p1.y, p1.z, nf.x, nf.y, nf.z, 1.0f, 1.0f);
+		meshData.Vertices[2] = V(apex.x, apex.y, apex.z, nf.x, nf.y, nf.z, 0.5f, 0.0f);
+
+		meshData.Indices32[0] = 0; meshData.Indices32[1] = 1; meshData.Indices32[2] = 2;
+	}
+
+	// Face 1: p1, p2, apex
+	{
+		XMVECTOR a = XMLoadFloat3(&p1);
+		XMVECTOR b = XMLoadFloat3(&p2);
+		XMVECTOR c = XMLoadFloat3(&apex);
+		XMVECTOR n = XMVector3Normalize(XMVector3Cross(b - a, c - a));
+		XMFLOAT3 nf;
+		XMStoreFloat3(&nf, n);
+
+		meshData.Vertices[3] = V(p1.x, p1.y, p1.z, nf.x, nf.y, nf.z, 0.0f, 1.0f);
+		meshData.Vertices[4] = V(p2.x, p2.y, p2.z, nf.x, nf.y, nf.z, 1.0f, 1.0f);
+		meshData.Vertices[5] = V(apex.x, apex.y, apex.z, nf.x, nf.y, nf.z, 0.5f, 0.0f);
+
+		meshData.Indices32[3] = 3; meshData.Indices32[4] = 4; meshData.Indices32[5] = 5;
+	}
+
+	// Face 2: p2, p3, apex
+	{
+		XMVECTOR a = XMLoadFloat3(&p2);
+		XMVECTOR b = XMLoadFloat3(&p3);
+		XMVECTOR c = XMLoadFloat3(&apex);
+		XMVECTOR n = XMVector3Normalize(XMVector3Cross(b - a, c - a));
+		XMFLOAT3 nf;
+		XMStoreFloat3(&nf, n);
+
+		meshData.Vertices[6] = V(p2.x, p2.y, p2.z, nf.x, nf.y, nf.z, 0.0f, 1.0f);
+		meshData.Vertices[7] = V(p3.x, p3.y, p3.z, nf.x, nf.y, nf.z, 1.0f, 1.0f);
+		meshData.Vertices[8] = V(apex.x, apex.y, apex.z, nf.x, nf.y, nf.z, 0.5f, 0.0f);
+
+		meshData.Indices32[6] = 6; meshData.Indices32[7] = 7; meshData.Indices32[8] = 8;
+	}
+
+	// Face 3: p3, p0, apex
+	{
+		XMVECTOR a = XMLoadFloat3(&p3);
+		XMVECTOR b = XMLoadFloat3(&p0);
+		XMVECTOR c = XMLoadFloat3(&apex);
+		XMVECTOR n = XMVector3Normalize(XMVector3Cross(b - a, c - a));
+		XMFLOAT3 nf;
+		XMStoreFloat3(&nf, n);
+
+		meshData.Vertices[9] = V(p3.x, p3.y, p3.z, nf.x, nf.y, nf.z, 0.0f, 1.0f);
+		meshData.Vertices[10] = V(p0.x, p0.y, p0.z, nf.x, nf.y, nf.z, 1.0f, 1.0f);
+		meshData.Vertices[11] = V(apex.x, apex.y, apex.z, nf.x, nf.y, nf.z, 0.5f, 0.0f);
+
+		meshData.Indices32[9] = 9; meshData.Indices32[10] = 10; meshData.Indices32[11] = 11;
+	}
+
+	// ---- Base (two triangles) ----
+	// Normal straight down (0,-1,0)
+	// Triangles: p0,p2,p1 and p0,p3,p2 (winding chosen for downward normal)
+	meshData.Vertices[12] = V(p0.x, p0.y, p0.z, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f);
+	meshData.Vertices[13] = V(p2.x, p2.y, p2.z, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f);
+	meshData.Vertices[14] = V(p1.x, p1.y, p1.z, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f);
+
+	meshData.Vertices[15] = V(p0.x, p0.y, p0.z, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f);
+	meshData.Vertices[16] = V(p3.x, p3.y, p3.z, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f);
+	meshData.Vertices[17] = V(p2.x, p2.y, p2.z, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f);
+
+	meshData.Indices32[12] = 12; meshData.Indices32[13] = 13; meshData.Indices32[14] = 14;
+	meshData.Indices32[15] = 15; meshData.Indices32[16] = 16; meshData.Indices32[17] = 17;
+
+	return meshData;
 }
